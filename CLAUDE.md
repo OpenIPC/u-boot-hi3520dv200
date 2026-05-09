@@ -27,14 +27,20 @@ make CROSS_COMPILE=arm-hisiv200-linux- mini-boot.bin
 
 ## Open questions (MVP gaps)
 
-Everything below is unresolved. The CI build step will fail until each is addressed.
+The CI build step will fail until each is addressed.
 
-1. **`reg_info_hi3520dv200.bin`** — DDR/PLL register-init blob baked into `mini-boot.bin` via `cp reg_info_<soc>.bin .reg`. Vendor SDKs ship this separately; it isn't in `u-boot-2010.06.tgz`. Source unknown.
-2. **OpenIPC env / prompt patches** — sibling repos override `CONFIG_SYS_PROMPT`, `CONFIG_BOOTARGS`, `CONFIG_BOOTCOMMAND`, mtdparts, and friends via a shared `hi-common.h` included from each per-SoC config. This repo doesn't have those yet — `include/configs/hi3520d.h` keeps the vendor's `hisilicon # ` prompt and minimal env.
-3. **mtdparts layout** — DVRs typically have larger flash and different partition geometry than the IP-camera fleet's `256k(boot),64k(env),2048k(kernel),5120k(rootfs),...`. The right hi3520dv200 layout needs verification against shipping hardware.
-4. **`qemu_smoke` gate** — `widgetii/qemu-hisilicon` has an `hi3520dv200` machine with full Linux boot test. U-Boot flash boot from this machine isn't exercised yet; that step lands once `mini-boot.bin` builds cleanly.
-5. **Partition-fit gate** — pending mtdparts decision (item 3). The fleet-wide 256-KiB ceiling is for IP-camera flash; DVRs may have larger boot regions.
-6. **Publish to `OpenIPC/firmware/latest`** — gated on (1)-(5). No `u-boot-hi3520dv200-universal.bin` is currently in `firmware/latest`.
+1. **Register-init blobs `.reg1` + `.reg2`** — `arch/arm/cpu/hi3520d/compressed/Makefile`'s `regfile` rule expects **two** blobs (not the single `.reg` the IP-camera fleet uses). They're DD'd into `mini-boot.bin` at byte offsets [64..2464) and [2464..4864), each 2400 bytes, padded with `conv=sync`. Vendor SDK ships these separately; not in `u-boot-2010.06.tgz`. Without them the build fails the regfile check.
+2. **OpenIPC env / prompt patches** — sibling repos override `CONFIG_SYS_PROMPT`, `CONFIG_BOOTARGS`, `CONFIG_BOOTCOMMAND`, mtdparts, etc. via a shared `hi-common.h` included from each per-SoC config. This repo doesn't have those yet — `include/configs/hi3520d.h` keeps the vendor's `hisilicon # ` prompt and minimal env. **Mtdparts layout is settled**: every existing OpenIPC HiSi u-boot uses `mtdparts=hi_sfc:256k(boot),64k(env),2048k(kernel),5120k(rootfs),-(rootfs_data)` for 8 MiB flash regardless of IP-camera vs DVR form factor (`OpenIPC/firmware`'s `hi3536cv100_lite_defconfig` / `hi3536dv100_lite_defconfig` are both 8 MiB with the same layout — no DVR-specific deviation).
+3. **`qemu_smoke` gate** — `widgetii/qemu-hisilicon` has an `hi3520dv200` machine. U-Boot flash boot isn't exercised yet; lands once `mini-boot.bin` builds cleanly.
+4. **Partition-fit gate** — clone the fleet-wide 256 KiB ceiling once `mini-boot.bin` builds. Same `(boot)` size on all OpenIPC HiSi mtdparts.
+5. **Publish to `OpenIPC/firmware/latest`** — gated on (1)-(4). No `u-boot-hi3520dv200-universal.bin` currently in `firmware/latest`.
+
+## Vendor patches already applied (deviations from verbatim vendor source)
+
+The CI bringup needed these to move past trivial blockers:
+
+- **`Makefile`** (top-level): `mini-boot.bin` prereq + `BINIMAGE=` arg switched from `full-boot.bin` to `u-boot.bin`. The vendor recipe expected an external wrapper script to `cp u-boot.bin full-boot.bin`; that script isn't in the SDK. Same fix `u-boot-hi3519v101` applies.
+- **`arch/arm/cpu/hi3520d/compressed/Makefile`**: added `product/hiddrtv200/ddrtraining.c` to `SSRC` and `ddrtraining.o` to `COBJS`. `start.S` references `ddrt_entry`; vendor build presumably linked `libhiddrtv200.a` externally, but the compressed-stage Makefile didn't.
 
 ## Source layout (familiar from u-boot-hi3519v101)
 
