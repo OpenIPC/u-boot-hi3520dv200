@@ -312,6 +312,15 @@
 #undef CONFIG_SYS_MALLOC_LEN
 
 /*
+ * hi-common.h enables CONFIG_CMD_UBIFS which pulls in UBIFS's
+ * LZO decompressor; without CONFIG_LZO, lib/lzo/Makefile compiles
+ * an empty liblzo.a and the link fails on `lzo1x_decompress_safe'.
+ * Sibling repos (hi3519v101, hi3516a, …) define CONFIG_LZO in
+ * their per-SoC config headers — match that pattern.
+ */
+#define CONFIG_LZO
+
+/*
  * OpenIPC fleet convention: include hi-common.h LAST so its env
  * block (mtdparts, bootcmd, OpenIPC # prompt, etc.) is what u-boot
  * compiles with. The header guards CONFIG_ENV_OFFSET / SIZE /
