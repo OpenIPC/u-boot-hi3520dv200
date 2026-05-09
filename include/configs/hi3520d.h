@@ -238,7 +238,14 @@
 	(void *)UART2_REG_BASE, (void *)UART3_REG_BASE}
 #define CONFIG_CONS_INDEX	0
 
-#define CONFIG_PRODUCTNAME		"hi3520d"
+/*
+ * OpenIPC convention: env's `soc` var should match
+ * BR2_OPENIPC_SOC_MODEL in OpenIPC/firmware (hi3520dv200_lite_defconfig
+ * sets it to "hi3520dv200"). Vendor naming is just "hi3520d"; override
+ * here so the resulting env reads `soc=hi3520dv200` after the
+ * hi-common.h include below builds the env block from CONFIG_PRODUCTNAME.
+ */
+#define CONFIG_PRODUCTNAME		"hi3520dv200"
 
 /*-----------------------------------------------------------------------
  * bootrom Configuration
@@ -296,4 +303,14 @@
 #define REG_INFO_BLANK_SIZE 2400
 
 #define CONFIG_OSD_ENABLE
+
+/*
+ * OpenIPC fleet convention: include hi-common.h LAST so its env
+ * block (mtdparts, bootcmd, OpenIPC # prompt, etc.) is what u-boot
+ * compiles with. The header guards CONFIG_ENV_OFFSET / SIZE /
+ * SECT_SIZE with #ifndef so the per-SoC values above (set for the
+ * vendor's flash layout) win — same wiring as u-boot-hi3519v101.
+ */
+#include <configs/hi-common.h>
+
 #endif	/* __CONFIG_H */
