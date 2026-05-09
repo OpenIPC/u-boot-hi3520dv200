@@ -1,0 +1,90 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        soc: [hi3520dv200]
+
+    steps:
+      - name: Install 32-bit libs
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq zlib1g:i386 libc6:i386 libstdc++6:i386
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache toolchain
+        id: cache-tc
+        uses: actions/cache@v4
+        with:
+          path: toolchain
+          key: arm-hisiv200-linux-v1
+
+      - name: Download toolchain
+        if: steps.cache-tc.outputs.cache-hit != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v1 -R OpenIPC/toolchains \
+            -p 'arm-hisiv200-linux.tgz'
+          mkdir -p toolchain
+          tar xzf arm-hisiv200-linux.tgz -C toolchain
+          if [ -f toolchain/arm-hisiv200-linux/arm-hisiv200-linux.tar.bz2 ]; then
+            tar xjf toolchain/arm-hisiv200-linux/arm-hisiv200-linux.tar.bz2 \
+                -C toolchain
+          fi
+          rm arm-hisiv200-linux.tgz
+          # vendor compressed/Makefile pins the short prefix
+          # `arm-hisiv200-linux-`; the bin/ dir ships gnueabi-suffixed
+          # binaries. Create short-name symlinks the same way the rest
+          # of the OpenIPC u-boot fleet does for hisiv500/510 et al.
+          cd toolchain/arm-hisiv200-linux/bin
+          for f in arm-hisiv200-linux-gnueabi-*; do
+            [ -e "$f" ] || continue
+            ln -sf "$f" "${f/-gnueabi/}"
+          done
+
+      - name: Build
+        run: |
+          export PATH="$PWD/toolchain/arm-hisiv200-linux/bin:$PATH"
+          # MVP: try a vendor-style build. Several pieces are still
+          # missing (reg_info_${soc}.bin, OpenIPC env header, possibly
+          # mini-boot.bin recipe wiring). This step intentionally
+          # surfaces what's still needed; expect failure until those
+          # land.
+          make hi3520d_config
+          # `cp reg_info_${{ matrix.soc }}.bin .reg` would go here once
+          # the reg_info blob is committed. Vendor mini-boot startup
+          # bakes the .reg blob in via dd; skipping it for now.
+          make CROSS_COMPILE=arm-hisiv200-linux- -j$(nproc) || {
+            echo "::warning::MVP build expected to fail — see CLAUDE.md open questions"
+            exit 1
+          }
+          make CROSS_COMPILE=arm-hisiv200-linux- mini-boot.bin || {
+            echo "::warning::mini-boot.bin not yet wired; see CLAUDE.md"
+            exit 1
+          }
+          cp mini-boot.bin u-boot-${{ matrix.soc }}-universal.bin
+
+      - name: Upload artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: u-boot-${{ matrix.soc }}-universal
+          path: u-boot-${{ matrix.soc }}-universal.bin
+
+  # qemu_smoke / publish jobs to be added once the build job is green.
+  # widgetii/qemu-hisilicon's `hi3520dv200` machine boots Linux via
+  # -kernel; u-boot flash boot will need exercising once a buildable
+  # mini-boot.bin lands.
