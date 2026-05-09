@@ -44,7 +44,9 @@ SSRC  := arch/arm/cpu/hi3520d/start.S \
 	arch/arm/lib/mmu.S \
 	arch/arm/lib/cache-cp15.c \
 	lib/unlzma.c \
-	product/hiddrtv200/ddrtraining.c
+	product/hiddrtv200/ddrtraining.c \
+	product/hiddrtv200/ddrtraining.h \
+	product/hiddrtv200/ddrtv200.h
 
 REG1   := $(wildcard $(TOPDIR)/*.reg1 $(TOPDIR)/.reg1)
 REG2   := $(wildcard $(TOPDIR)/*.reg2 $(TOPDIR)/.reg2)

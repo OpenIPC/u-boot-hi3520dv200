@@ -58,23 +58,16 @@ jobs:
       - name: Build
         run: |
           export PATH="$PWD/toolchain/arm-hisiv200-linux/bin:$PATH"
-          # MVP: try a vendor-style build. Several pieces are still
-          # missing (reg_info_${soc}.bin, OpenIPC env header, possibly
-          # mini-boot.bin recipe wiring). This step intentionally
-          # surfaces what's still needed; expect failure until those
-          # land.
           make hi3520d_config
-          # `cp reg_info_${{ matrix.soc }}.bin .reg` would go here once
-          # the reg_info blob is committed. Vendor mini-boot startup
-          # bakes the .reg blob in via dd; skipping it for now.
-          make CROSS_COMPILE=arm-hisiv200-linux- -j$(nproc) || {
-            echo "::warning::MVP build expected to fail — see CLAUDE.md open questions"
-            exit 1
-          }
-          make CROSS_COMPILE=arm-hisiv200-linux- mini-boot.bin || {
-            echo "::warning::mini-boot.bin not yet wired; see CLAUDE.md"
-            exit 1
-          }
+          # Hi3520D's compressed/Makefile dd's two register-init blobs
+          # (.reg1 + .reg2) into mini-boot.bin at offsets 64 and 2464.
+          # Extracted verbatim from the SDK V2.0.5.1 prebuilt
+          # u-boot_hi3520d.bin via the same `dd skip=64/2464 count=2400`
+          # the vendor mkboot-hi3520d.sh applies in reverse.
+          cp reg_info_${{ matrix.soc }}.bin1 .reg1
+          cp reg_info_${{ matrix.soc }}.bin2 .reg2
+          make CROSS_COMPILE=arm-hisiv200-linux- -j$(nproc)
+          make CROSS_COMPILE=arm-hisiv200-linux- mini-boot.bin
           cp mini-boot.bin u-boot-${{ matrix.soc }}-universal.bin
 
       - name: Upload artifact
