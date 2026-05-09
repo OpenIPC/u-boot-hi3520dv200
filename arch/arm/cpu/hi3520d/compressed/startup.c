@@ -22,15 +22,40 @@ void reset_cpu(unsigned long addr)
 #endif
 
 /*
- * product/hiddrtv200/ddrtraining.c calls printf() inside its
- * ddrt_print_bit_result() debug path. UART isn't initialised at
- * this stage of the compressed wrapper, so provide a no-op stub —
- * matches the vendor prebuilt u-boot_hi3520d.bin (the format
- * strings are present in the binary but never reach stdout).
+ * product/hiddrtv200/ddrtraining.c calls printf() in its debug
+ * path and memset() in struct init. UART isn't initialised at
+ * this stage so printf is a no-op; memset is needed for
+ * correctness — verbatim from u-boot's lib/string.c (we don't
+ * pull in the whole file because it transitively wants malloc()).
  */
 int printf(const char *fmt, ...)
 {
 	return 0;
+}
+
+void *memset(void *s, int c, unsigned int count)
+{
+	unsigned long *sl = (unsigned long *)s;
+	unsigned long cl = 0;
+	char *s8;
+	int i;
+
+	/* word at a time while aligned and >= word remaining */
+	if (((unsigned long)s & (sizeof(*sl) - 1)) == 0) {
+		for (i = 0; i < sizeof(*sl); i++) {
+			cl <<= 8;
+			cl |= c & 0xff;
+		}
+		while (count >= sizeof(*sl)) {
+			*sl++ = cl;
+			count -= sizeof(*sl);
+		}
+	}
+	/* byte tail */
+	s8 = (char *)sl;
+	while (count--)
+		*s8++ = c;
+	return s;
 }
 /******************************************************************************/
 const unsigned int IMAGE_ENTRY = (TEXT_BASE + 0x100000);

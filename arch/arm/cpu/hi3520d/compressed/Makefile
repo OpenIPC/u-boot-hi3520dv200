@@ -30,21 +30,20 @@ START := start.o
 COBJS := startup.o \
 	cache-cp15.o\
 	mmu.o image_data.o \
-	ddrtraining.o \
-	string.o
+	ddrtraining.o
 
 # arch/arm/cpu/hi3520d/start.S references ddrt_entry (DDR training
 # entry point), defined in product/hiddrtv200/ddrtraining.c.
-# ddrtraining.c also calls memset() — pull lib/string.c in for
-# the implementation. printf() is stubbed locally in startup.c
-# (the wrapper's UART isn't initialised at that stage).
+# ddrtraining.c uses memset() and printf() — both stubbed locally
+# in startup.c (memset is a verbatim copy of u-boot's lib/string.c
+# implementation; printf is a no-op since UART isn't initialised at
+# this stage).
 SSRC  := arch/arm/cpu/hi3520d/start.S \
 	arch/arm/cpu/hi3520d/lowlevel_init.S \
 	arch/arm/cpu/hi3520d/ddrphy_train_route.S \
 	arch/arm/lib/mmu.S \
 	arch/arm/lib/cache-cp15.c \
 	lib/unlzma.c \
-	lib/string.c \
 	product/hiddrtv200/ddrtraining.c \
 	product/hiddrtv200/ddrtraining.h \
 	product/hiddrtv200/ddrtv200.h
