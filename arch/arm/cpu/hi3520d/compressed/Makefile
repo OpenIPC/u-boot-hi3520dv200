@@ -30,20 +30,21 @@ START := start.o
 COBJS := startup.o \
 	cache-cp15.o\
 	mmu.o image_data.o \
-	ddrtraining.o
+	ddrtraining.o \
+	string.o
 
 # arch/arm/cpu/hi3520d/start.S references ddrt_entry (DDR training
-# entry point), defined in product/hiddrtv200/ddrtraining.c. The
-# vendor build presumably linked product/hiddrtv200/libhiddrtv200.a
-# into mini-boot.elf via an external script that isn't in the SDK
-# tarball — pull the source into SSRC directly so the existing
-# symlink-staging rule below picks it up.
+# entry point), defined in product/hiddrtv200/ddrtraining.c.
+# ddrtraining.c also calls memset() — pull lib/string.c in for
+# the implementation. printf() is stubbed locally in startup.c
+# (the wrapper's UART isn't initialised at that stage).
 SSRC  := arch/arm/cpu/hi3520d/start.S \
 	arch/arm/cpu/hi3520d/lowlevel_init.S \
 	arch/arm/cpu/hi3520d/ddrphy_train_route.S \
 	arch/arm/lib/mmu.S \
 	arch/arm/lib/cache-cp15.c \
 	lib/unlzma.c \
+	lib/string.c \
 	product/hiddrtv200/ddrtraining.c \
 	product/hiddrtv200/ddrtraining.h \
 	product/hiddrtv200/ddrtv200.h

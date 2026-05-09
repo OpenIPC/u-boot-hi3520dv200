@@ -20,6 +20,18 @@ void reset_cpu(unsigned long addr)
 {
 }
 #endif
+
+/*
+ * product/hiddrtv200/ddrtraining.c calls printf() inside its
+ * ddrt_print_bit_result() debug path. UART isn't initialised at
+ * this stage of the compressed wrapper, so provide a no-op stub —
+ * matches the vendor prebuilt u-boot_hi3520d.bin (the format
+ * strings are present in the binary but never reach stdout).
+ */
+int printf(const char *fmt, ...)
+{
+	return 0;
+}
 /******************************************************************************/
 const unsigned int IMAGE_ENTRY = (TEXT_BASE + 0x100000);
 
