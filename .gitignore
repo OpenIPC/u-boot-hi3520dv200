@@ -1,4 +1,5 @@
-# Build artifacts
+# Build artifacts (anchored to repo root so we don't accidentally
+# match include/u-boot/, board/u-boot, etc.)
 *.o
 *.a
 *.d
@@ -9,20 +10,19 @@
 *.srec
 *.map
 .depend
-.cmd
 *.cmd
-include/asm
-include/config.h
-include/config.mk
-include/autoconf.mk
-include/autoconf.mk.dep
-.config
-.config.old
-.reg
-u-boot
-u-boot.bin
-u-boot.lds
-u-boot.cfg
-u-boot-*.bin
-mini-boot.bin
-mini-boot.elf
+/include/asm
+/include/config.h
+/include/config.mk
+/include/autoconf.mk
+/include/autoconf.mk.dep
+/.config
+/.config.old
+/.reg
+/u-boot
+/u-boot.bin
+/u-boot.lds
+/u-boot.cfg
+/u-boot-*.bin
+/mini-boot.bin
+/mini-boot.elf
