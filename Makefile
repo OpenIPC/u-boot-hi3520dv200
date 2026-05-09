@@ -321,10 +321,10 @@ $(obj)u-boot.bin:	$(obj)u-boot
 		$(OBJCOPY) ${OBJCFLAGS} -O binary $< $@
 
 .PHONY: mini-boot.bin
-mini-boot.bin: $(TOPDIR)/full-boot.bin
+mini-boot.bin: $(TOPDIR)/u-boot.bin
 	make -C $(TOPDIR)/arch/$(ARCH)/cpu/$(CPU)/compressed \
 		CROSS_COMPILE=$(CROSS_COMPILE) \
-		BINIMAGE=$(TOPDIR)/full-boot.bin TOPDIR=$(TOPDIR)
+		BINIMAGE=$(TOPDIR)/u-boot.bin TOPDIR=$(TOPDIR)
 
 $(obj)u-boot.ldr:	$(obj)u-boot
 		$(CREATE_LDR_ENV)
