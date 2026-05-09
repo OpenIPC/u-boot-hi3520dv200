@@ -305,6 +305,13 @@
 #define CONFIG_OSD_ENABLE
 
 /*
+ * hi-common.h enables CONFIG_CMD_UBI which needs >= 512 KiB of
+ * malloc area; the per-SoC default at line 81 is too small.
+ * Drop it so hi-common.h's `CONFIG_ENV_SIZE + 512*1024` kicks in.
+ */
+#undef CONFIG_SYS_MALLOC_LEN
+
+/*
  * OpenIPC fleet convention: include hi-common.h LAST so its env
  * block (mtdparts, bootcmd, OpenIPC # prompt, etc.) is what u-boot
  * compiles with. The header guards CONFIG_ENV_OFFSET / SIZE /
