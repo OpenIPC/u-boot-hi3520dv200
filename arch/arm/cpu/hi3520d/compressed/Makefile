@@ -29,14 +29,22 @@ CFLAGS   := -g -Os -fno-strict-aliasing -fno-common -ffixed-r8 \
 START := start.o
 COBJS := startup.o \
 	cache-cp15.o\
-	mmu.o image_data.o
+	mmu.o image_data.o \
+	ddrtraining.o
 
+# arch/arm/cpu/hi3520d/start.S references ddrt_entry (DDR training
+# entry point), defined in product/hiddrtv200/ddrtraining.c. The
+# vendor build presumably linked product/hiddrtv200/libhiddrtv200.a
+# into mini-boot.elf via an external script that isn't in the SDK
+# tarball — pull the source into SSRC directly so the existing
+# symlink-staging rule below picks it up.
 SSRC  := arch/arm/cpu/hi3520d/start.S \
 	arch/arm/cpu/hi3520d/lowlevel_init.S \
 	arch/arm/cpu/hi3520d/ddrphy_train_route.S \
 	arch/arm/lib/mmu.S \
 	arch/arm/lib/cache-cp15.c \
-	lib/unlzma.c
+	lib/unlzma.c \
+	product/hiddrtv200/ddrtraining.c
 
 REG1   := $(wildcard $(TOPDIR)/*.reg1 $(TOPDIR)/.reg1)
 REG2   := $(wildcard $(TOPDIR)/*.reg2 $(TOPDIR)/.reg2)
