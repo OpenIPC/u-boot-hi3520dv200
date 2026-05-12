@@ -305,22 +305,6 @@
 #define CONFIG_OSD_ENABLE
 
 /*
- * hi-common.h enables CONFIG_CMD_UBI which needs >= 512 KiB of
- * malloc area; the per-SoC default at line 81 is too small.
- * Drop it so hi-common.h's `CONFIG_ENV_SIZE + 512*1024` kicks in.
- */
-#undef CONFIG_SYS_MALLOC_LEN
-
-/*
- * hi-common.h enables CONFIG_CMD_UBIFS which pulls in UBIFS's
- * LZO decompressor; without CONFIG_LZO, lib/lzo/Makefile compiles
- * an empty liblzo.a and the link fails on `lzo1x_decompress_safe'.
- * Sibling repos (hi3519v101, hi3516a, …) define CONFIG_LZO in
- * their per-SoC config headers — match that pattern.
- */
-#define CONFIG_LZO
-
-/*
  * OpenIPC fleet convention: include hi-common.h LAST so its env
  * block (mtdparts, bootcmd, OpenIPC # prompt, etc.) is what u-boot
  * compiles with. The header guards CONFIG_ENV_OFFSET / SIZE /
@@ -328,5 +312,23 @@
  * vendor's flash layout) win — same wiring as u-boot-hi3519v101.
  */
 #include <configs/hi-common.h>
+
+/*
+ * SPI-NOR-squashfs flow doesn't need the heavy commands hi-common.h
+ * pulls in. Without this trim, u-boot.bin exceeds the 256 KiB boot
+ * partition. Vendor's u-boot_hi3520d.bin (228 KiB) ships raw, with
+ * a minimal vendor env — we publish the same shape (raw u-boot.bin +
+ * reg-blob preamble via mkboot-hi3520d.sh) plus the OpenIPC env block
+ * from hi-common.h, so the trim is what keeps us under the gate.
+ * Same set as u-boot-hi3536cv100 / u-boot-hi3536dv100.
+ */
+#undef CONFIG_CMD_UBI
+#undef CONFIG_CMD_UBIFS
+#undef CONFIG_CMD_USB
+#undef CONFIG_CMD_PCMCIA
+#undef CONFIG_CMD_FAT
+#undef CONFIG_CMD_FS_GENERIC
+#undef CONFIG_CMD_EXT2
+#undef CONFIG_OSD_ENABLE
 
 #endif	/* __CONFIG_H */

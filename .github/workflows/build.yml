@@ -59,16 +59,23 @@ jobs:
         run: |
           export PATH="$PWD/toolchain/arm-hisiv200-linux/bin:$PATH"
           make hi3520d_config
-          # Hi3520D's compressed/Makefile dd's two register-init blobs
-          # (.reg1 + .reg2) into mini-boot.bin at offsets 64 and 2464.
-          # Extracted verbatim from the SDK V2.0.5.1 prebuilt
-          # u-boot_hi3520d.bin via the same `dd skip=64/2464 count=2400`
-          # the vendor mkboot-hi3520d.sh applies in reverse.
-          cp reg_info_${{ matrix.soc }}.bin1 .reg1
-          cp reg_info_${{ matrix.soc }}.bin2 .reg2
-          make CROSS_COMPILE=arm-hisiv200-linux- -j$(nproc)
-          make CROSS_COMPILE=arm-hisiv200-linux- mini-boot.bin
-          cp mini-boot.bin u-boot-${{ matrix.soc }}-universal.bin
+          make CROSS_COMPILE=arm-hisiv200-linux- u-boot.bin -j$(nproc)
+          # Replicate vendor's mkboot-hi3520d.sh: prepend the two 2400 B
+          # DDR/PLL register-init blobs into the 4800 B blank zone that
+          # hi3520d.h's ENABLE_HI3520D_BLANK + ENABLE_HI3515A_BLANK reserves
+          # in u-boot.bin (start.S:54-61). The vendor SDK's prebuilt
+          # u-boot_hi3520d.bin is assembled this way — raw u-boot.bin + reg
+          # blobs, NOT the compressed/ mini-boot LZMA wrapper. Defib's
+          # SPL-boundary heuristic stays in safe fallback mode this way
+          # (no LZMA payload to detect), matching how every other fleet
+          # member with no LZMA in defib's 0x4000..0x10000 scan window
+          # (vendor hi3520d, hi3516cv500, hi3516ev200) gets handled.
+          dd if=u-boot.bin                      of=t1 bs=1    count=64    2>/dev/null
+          dd if=reg_info_${{ matrix.soc }}.bin1 of=t2 bs=2400 conv=sync   2>/dev/null
+          dd if=reg_info_${{ matrix.soc }}.bin2 of=t3 bs=2400 conv=sync   2>/dev/null
+          dd if=u-boot.bin                      of=t4 bs=1    skip=4864   2>/dev/null
+          cat t1 t2 t3 t4 > u-boot-${{ matrix.soc }}-universal.bin
+          rm -f t1 t2 t3 t4
 
       - name: Check partition fit
         run: |
