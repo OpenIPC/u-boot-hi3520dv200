@@ -104,12 +104,18 @@
 #include "../../product/env_setup.h"
 /* env in flash instead of CFG_ENV_IS_NOWHERE */
 #define CONFIG_ENV_IS_IN_SPI_FLASH     1
-#define CONFIG_ENV_OFFSET          0x80000      /* environment starts here */
 #define CONFIG_ENV_SPI_ADDR        (CONFIG_ENV_OFFSET)
 #define CONFIG_CMD_SAVEENV
-
-#define CONFIG_ENV_SIZE            0x40000    /*include ENV_HEADER_SIZE */
-#define CONFIG_ENV_SECT_SIZE CONFIG_ENV_SIZE
+/*
+ * CONFIG_ENV_OFFSET / SIZE / SECT_SIZE intentionally NOT set here. The
+ * vendor's defaults (0x80000 / 256 KiB / 256 KiB) collide with OpenIPC's
+ * `256k(boot),64k(env),2048k(kernel),...` NOR mtdparts in hi-common.h:
+ * `saveenv` would erase 256 KiB at flash offset 0x80000, which lands
+ * inside the kernel partition (0x50000..0x250000) and bricks the device
+ * on the next boot. Let hi-common.h's `#ifndef`-guarded defaults take
+ * effect — they match the mtdparts: env at 0x40000, 64 KiB, single
+ * 64 KiB erase sector (matches the MX25L256 family's block size).
+ */
 #define CONFIG_NR_DRAM_BANKS       1          /* we have 1 bank of DRAM */
 /* kernel parameter list phy addr */
 #define CFG_BOOT_PARAMS			(MEM_BASE_DDR+0x0100)
